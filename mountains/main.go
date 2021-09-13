@@ -7,6 +7,12 @@ import (
 	"github.com/fogleman/gg"
 )
 
+var (
+	W = 4000
+	H = 2000
+	num_mt_ranges = 8
+)
+
 type MountainData struct {
 	r float64
 	g float64
@@ -14,42 +20,51 @@ type MountainData struct {
 	a float64
 	w float64
 	dc *gg.Context
+	big_height_variation float64
+	small_height_variation float64
 	y_height float64
+	big_steps int
+	small_steps int
+}
+
+func (s *MountainData) InitMountainData() {
+	s.y_height = s.big_height_variation * float64(H)
+	// set air color
+	s.dc.SetRGB(0.7, 0.8, 1)
+	s.dc.Clear()
+
+	s.big_steps = 5
+	s.small_steps = 5
 }
 
 func (s *MountainData) iterate() {
-	const factor = 1.2
+	const factor = 0.9
 	s.r = s.r * factor
 	s.g = s.g * factor
 	s.b = s.b * factor
 
 	// lower height of mountains at every step
-	s.y_height = s.y_height + (0.15 * float64(H))
+	s.y_height = s.y_height + (0.07 * float64(H))
 }
-
-var (
-	W = 4000
-	H = 2000
-)
 
 func main() {
 
 	rand.Seed(time.Now().Unix())
 
 	mt_range := MountainData{
-		r: rand.Float64() * 0.3,
-		g: rand.Float64() * 0.3,
-		b: rand.Float64() * 0.3,
+		r: rand.Float64(),
+		g: rand.Float64(),
+		b: rand.Float64(),
 		// a := rand.Float64() * 0.5 + 0.5,
 		a: 1.0,
 		w: rand.Float64() * 4 + 1,
 		dc: gg.NewContext(W, H),
-		y_height: 0.2 * float64(H),
+		big_height_variation: 0.3,
+		small_height_variation: 0.1,
 	}
-	mt_range.dc.SetRGB(0, 0, 0)
-	mt_range.dc.Clear()
+	mt_range.InitMountainData()
 
-	for i := 0; i < 5; i++ {
+	for i := 0; i < num_mt_ranges; i++ {
 		drawMountainLine(&mt_range, W, H)
 
 		mt_range.iterate()
@@ -68,16 +83,32 @@ func drawMountainLine(mt *MountainData, dc_w int, dc_h int) {
 	y_range := 0.1 * float64(dc_h)
 	// start at a random place y_range % from starting point
 	y_from := float64(mt.y_height) + (y_range * (-1 + rand.Float64() * 2))
-	steps := 5
 
-	// Start from bottom left
+	// Start from bottom left, to inital left-most point
 	mt.dc.LineTo(float64(x_from), float64(dc_h))
 	mt.dc.LineTo(float64(x_from), float64(y_from))
-	for i := 0; i < steps; i++ {
 
-		x_to := x_from + (dc_w/steps)
-		jitter := float64(y_from) * 0.2
+	for i := 0; i < mt.big_steps; i++ {
+
+		x_to := x_from + (dc_w/mt.big_steps)
+		jitter := float64(y_from) * mt.big_height_variation
 		y_to := y_from + (jitter * (-1  + rand.Float64() * 2))
+
+		// small steps should follow the trend of big steps
+		x_small_from := x_from
+		y_small_from := y_from
+		for j := 0; j < mt.small_steps - 1; j++ {
+			x_small_to := x_small_from + ((dc_w/mt.big_steps)/mt.small_steps)
+			// TODO follow trend
+			small_jitter := float64(y_small_from) * mt.small_height_variation
+			trend_correction := (y_to - y_from) * 0.3
+			y_small_to := y_small_from + (small_jitter * (-1 + rand.Float64() * 2)) + trend_correction
+			mt.dc.LineTo(float64(x_small_to), float64(y_small_to))
+
+			// Update small iteration
+			x_small_from = x_small_to
+			y_small_from = y_small_to
+		}
 
 		mt.dc.LineTo(float64(x_to), float64(y_to))
 
@@ -85,11 +116,13 @@ func drawMountainLine(mt *MountainData, dc_w int, dc_h int) {
 		x_from = x_to
 		y_from = y_to
 	}
+	// Close polygon going to right-most bottom, then left-most bottom
 	mt.dc.LineTo(float64(dc_w), float64(dc_h))
 	mt.dc.LineTo(0, float64(dc_h))
 
 	mt.dc.SetFillRule(gg.FillRuleEvenOdd)
 	mt.dc.FillPreserve()
-	mt.dc.Stroke()
 
+	// Paint it
+	mt.dc.Stroke()
 }
