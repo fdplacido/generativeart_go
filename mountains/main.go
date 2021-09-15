@@ -84,6 +84,8 @@ func drawMountainLine(mt *MountainData, dc_w int, dc_h int) {
 	// start at a random place y_range % from starting point
 	y_from := float64(mt.y_height) + (y_range * (-1 + rand.Float64() * 2))
 
+	mt.dc.Push()
+
 	// Start from bottom left, to inital left-most point
 	mt.dc.LineTo(float64(x_from), float64(dc_h))
 	mt.dc.LineTo(float64(x_from), float64(y_from))
@@ -116,6 +118,7 @@ func drawMountainLine(mt *MountainData, dc_w int, dc_h int) {
 		x_from = x_to
 		y_from = y_to
 	}
+
 	// Close polygon going to right-most bottom, then left-most bottom
 	mt.dc.LineTo(float64(dc_w), float64(dc_h))
 	mt.dc.LineTo(0, float64(dc_h))
@@ -125,4 +128,65 @@ func drawMountainLine(mt *MountainData, dc_w int, dc_h int) {
 
 	// Paint it
 	mt.dc.Stroke()
+
+	mt.dc.Pop()
+
+	drawTree(mt, 500, 1800, 200)
+}
+
+func drawTree(mt *MountainData, base_x, base_y, height int) {
+
+	bottom := float64(base_y)
+	top := bottom - float64(height)
+	base_l := float64(base_x)
+	base_r := base_l + (float64(height) * 0.0375)
+	half_tree := base_l + ((base_r - base_l) / 2)
+
+	// Draw the trunk
+	mt.dc.Push()
+
+	mt.dc.SetRGBA(1, 1, 1, 1)
+
+	mt.dc.LineTo(base_l, bottom)
+	mt.dc.LineTo(base_r, bottom)
+	mt.dc.LineTo(half_tree, top)
+	mt.dc.LineTo(base_l, bottom)
+
+	mt.dc.SetFillRule(gg.FillRuleEvenOdd)
+	mt.dc.FillPreserve()
+	mt.dc.Stroke()
+
+	mt.dc.Pop()
+
+	// Draw the branches
+	branch_base_y := bottom - (float64(height) * 0.125)
+	branch_tip_x := float64(height) * 0.25
+	branch_side := 1
+	branch_reduction_f := branch_tip_x * 0.05
+
+	for branch_base_y > (top + (float64(height) * 0.025)) {
+		mt.dc.Push()
+
+		mt.dc.SetRGBA(1, 1, 1, 1)
+
+		mt.dc.LineTo(half_tree, branch_base_y)
+		mt.dc.LineTo(half_tree, branch_base_y - (float64(height) * 0.0125))
+		mt.dc.LineTo(half_tree + (branch_tip_x * float64(branch_side)) , branch_base_y + (float64(height) * 0.0375))
+
+		// invert branch x position
+		branch_side = branch_side * -1
+		// reduce branch lenght
+		branch_tip_x = branch_tip_x - branch_reduction_f
+		// move next branch up
+		branch_base_y = branch_base_y - (float64(height) * 0.05)
+
+
+		mt.dc.SetFillRule(gg.FillRuleEvenOdd)
+		mt.dc.FillPreserve()
+
+		// Paint it
+		mt.dc.Stroke()
+
+		mt.dc.Pop()
+	}
 }
