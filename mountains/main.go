@@ -150,6 +150,17 @@ func drawMountainLine(mt *MountainData, dc_w int, dc_h int) {
 }
 
 
+type BranchTree struct {
+	bottom_start_y float64
+	lenght_f float64
+	reduction_f float64
+	top_limit_y float64
+	width_f float64
+	inclination_f float64
+	separation_f float64
+}
+
+
 func drawTree(mt *MountainData, base_x, base_y, height float64) {
 
 	sm1 := RandomInRange{min: 0.8, max: 1.2}
@@ -176,20 +187,30 @@ func drawTree(mt *MountainData, base_x, base_y, height float64) {
 
 	mt.dc.Pop()
 
-	// Draw the branches
-	branch_base_y := bottom - ((height * 0.125) * sm1.rnd())
-	branch_tip_x := ((height * 0.25) * sm1.rnd())
-	branch_side := 1
-	branch_reduction_f := ((branch_tip_x * 0.05) * sm1.rnd())
+	br := BranchTree {
+		bottom_start_y: height * 0.125,
+		lenght_f: height * 0.25,
+		reduction_f: 0.05,
+		top_limit_y: height * 0.025,
+		width_f: height * 0.0125,
+		inclination_f: height * 0.0375,
+		separation_f: height * 0.05,
+	}
 
-	for branch_base_y > (top + (height * 0.025)) {
+	// Draw the branches
+	branch_base_y := bottom - (br.bottom_start_y * sm1.rnd())
+	branch_tip_x := br.lenght_f * sm1.rnd()
+	branch_side := 1.0
+	branch_reduction_f := ((branch_tip_x * br.reduction_f) * sm1.rnd())
+
+	for branch_base_y > (top + br.top_limit_y) {
 		mt.dc.Push()
 
 		mt.dc.SetRGBA(1, 1, 1, 1)
 
 		mt.dc.LineTo(half_tree, branch_base_y)
-		mt.dc.LineTo(half_tree, branch_base_y - (height * 0.0125))
-		mt.dc.LineTo(half_tree + (branch_tip_x * float64(branch_side)) , branch_base_y + ((height * 0.0375) * sm1.rnd()))
+		mt.dc.LineTo(half_tree, branch_base_y - (br.width_f * sm1.rnd()))
+		mt.dc.LineTo(half_tree + (branch_tip_x * branch_side), branch_base_y + (br.inclination_f * sm1.rnd()))
 		mt.dc.LineTo(half_tree, branch_base_y)
 
 		// invert branch x position
@@ -197,7 +218,7 @@ func drawTree(mt *MountainData, base_x, base_y, height float64) {
 		// reduce branch lenght
 		branch_tip_x = branch_tip_x - (branch_reduction_f * sm1.rnd())
 		// move next branch up
-		branch_base_y = branch_base_y - ((height * 0.05) * sm1.rnd())
+		branch_base_y = branch_base_y - (br.separation_f * sm1.rnd())
 
 
 		mt.dc.SetFillRule(gg.FillRuleEvenOdd)
