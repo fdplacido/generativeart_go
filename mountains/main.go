@@ -47,6 +47,15 @@ func (s *MountainData) iterate() {
 	s.y_height = s.y_height + (0.07 * float64(H))
 }
 
+type RandomInRange struct {
+	min float64
+	max float64
+}
+
+func (rir *RandomInRange) rnd() float64 {
+	return (rir.min + rand.Float64() * (rir.max - rir.min))
+}
+
 func main() {
 
 	rand.Seed(time.Now().Unix())
@@ -76,13 +85,15 @@ func main() {
 
 func drawMountainLine(mt *MountainData, dc_w int, dc_h int) {
 
+	sm1 := RandomInRange{min: -1, max: 1}
+
 	mt.dc.SetRGBA(mt.r, mt.g, mt.b, mt.a)
 	mt.dc.SetLineWidth(mt.w)
 
 	x_from := 0
 	y_range := 0.1 * float64(dc_h)
 	// start at a random place y_range % from starting point
-	y_from := float64(mt.y_height) + (y_range * (-1 + rand.Float64() * 2))
+	y_from := float64(mt.y_height) + (y_range * sm1.rnd())
 
 	mt.dc.Push()
 
@@ -131,15 +142,22 @@ func drawMountainLine(mt *MountainData, dc_w int, dc_h int) {
 
 	mt.dc.Pop()
 
-	drawTree(mt, 500, 1800, 200)
+	rndX := RandomInRange{min: 0, max: float64(W)}
+	rndY := RandomInRange{min: 500, max: 1999}
+	rndH := RandomInRange{min: 100, max: 300}
+
+	drawTree(mt, rndX.rnd(), rndY.rnd(), rndH.rnd())
 }
 
-func drawTree(mt *MountainData, base_x, base_y, height int) {
 
-	bottom := float64(base_y)
-	top := bottom - float64(height)
-	base_l := float64(base_x)
-	base_r := base_l + (float64(height) * 0.0375)
+func drawTree(mt *MountainData, base_x, base_y, height float64) {
+
+	sm1 := RandomInRange{min: 0.8, max: 1.2}
+
+	bottom := base_y
+	top := bottom - height
+	base_l := base_x
+	base_r := base_l + ((height * 0.0375) * sm1.rnd())
 	half_tree := base_l + ((base_r - base_l) / 2)
 
 	// Draw the trunk
@@ -159,26 +177,27 @@ func drawTree(mt *MountainData, base_x, base_y, height int) {
 	mt.dc.Pop()
 
 	// Draw the branches
-	branch_base_y := bottom - (float64(height) * 0.125)
-	branch_tip_x := float64(height) * 0.25
+	branch_base_y := bottom - ((height * 0.125) * sm1.rnd())
+	branch_tip_x := ((height * 0.25) * sm1.rnd())
 	branch_side := 1
-	branch_reduction_f := branch_tip_x * 0.05
+	branch_reduction_f := ((branch_tip_x * 0.05) * sm1.rnd())
 
-	for branch_base_y > (top + (float64(height) * 0.025)) {
+	for branch_base_y > (top + (height * 0.025)) {
 		mt.dc.Push()
 
 		mt.dc.SetRGBA(1, 1, 1, 1)
 
 		mt.dc.LineTo(half_tree, branch_base_y)
-		mt.dc.LineTo(half_tree, branch_base_y - (float64(height) * 0.0125))
-		mt.dc.LineTo(half_tree + (branch_tip_x * float64(branch_side)) , branch_base_y + (float64(height) * 0.0375))
+		mt.dc.LineTo(half_tree, branch_base_y - (height * 0.0125))
+		mt.dc.LineTo(half_tree + (branch_tip_x * float64(branch_side)) , branch_base_y + ((height * 0.0375) * sm1.rnd()))
+		mt.dc.LineTo(half_tree, branch_base_y)
 
 		// invert branch x position
 		branch_side = branch_side * -1
 		// reduce branch lenght
-		branch_tip_x = branch_tip_x - branch_reduction_f
+		branch_tip_x = branch_tip_x - (branch_reduction_f * sm1.rnd())
 		// move next branch up
-		branch_base_y = branch_base_y - (float64(height) * 0.05)
+		branch_base_y = branch_base_y - ((height * 0.05) * sm1.rnd())
 
 
 		mt.dc.SetFillRule(gg.FillRuleEvenOdd)
