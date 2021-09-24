@@ -3,6 +3,7 @@ package main
 import (
 	"math/rand"
 	"time"
+	// "fmt"
 
 	"github.com/fogleman/gg"
 )
@@ -90,10 +91,14 @@ func drawMountainLine(mt *MountainData, dc_w int, dc_h int) {
 	mt.dc.SetRGBA(mt.r, mt.g, mt.b, mt.a)
 	mt.dc.SetLineWidth(mt.w)
 
+	// Save all intermediate X,Y coordinates to calculate max height of trees later
+	horizon_points := make([][2]float64, 0)
+
 	x_from := 0
 	y_range := 0.1 * float64(dc_h)
 	// start at a random place y_range % from starting point
 	y_from := float64(mt.y_height) + (y_range * sm1.rnd())
+	horizon_points = append(horizon_points, [2]float64{0: float64(x_from), 1: y_from})
 
 	mt.dc.Push()
 
@@ -121,6 +126,8 @@ func drawMountainLine(mt *MountainData, dc_w int, dc_h int) {
 			// Update small iteration
 			x_small_from = x_small_to
 			y_small_from = y_small_to
+
+			horizon_points = append(horizon_points, [2]float64{0: float64(x_small_from), 1: y_small_from})
 		}
 
 		mt.dc.LineTo(float64(x_to), float64(y_to))
@@ -128,6 +135,8 @@ func drawMountainLine(mt *MountainData, dc_w int, dc_h int) {
 		// Update for next iteration
 		x_from = x_to
 		y_from = y_to
+
+		horizon_points = append(horizon_points, [2]float64{0: float64(x_from), 1: y_from})
 	}
 
 	// Close polygon going to right-most bottom, then left-most bottom
@@ -142,11 +151,38 @@ func drawMountainLine(mt *MountainData, dc_w int, dc_h int) {
 
 	mt.dc.Pop()
 
-	rndX := RandomInRange{min: 0, max: float64(W)}
-	rndY := RandomInRange{min: 500, max: 1999}
-	rndH := RandomInRange{min: 100, max: 300}
+	for treeidx := 0; treeidx < 200; treeidx++ {
+		// Randomize tree painting
+		rndX := RandomInRange{min: 0, max: float64(W)}
+		x_num := rndX.rnd()
 
-	drawTree(mt, rndX.rnd(), rndY.rnd(), rndH.rnd())
+		// Calculate max Y for tree
+		max_y_tree := func() float64 {
+			// TODO binary search for X coord
+			found_val := 0
+			for k := 0; k < len(horizon_points); k++ {
+				if x_num > horizon_points[k][0] {
+					continue
+				} else if x_num <= horizon_points[k][0] {
+					found_val = k
+					break
+				}
+			}
+
+			prev_y := horizon_points[found_val-1][1]
+			if (prev_y < horizon_points[found_val][1]) {
+				return prev_y
+			} else {
+				return horizon_points[found_val][1]
+			}
+		}
+
+		rndY := RandomInRange{min: max_y_tree(), max: float64(H)}
+		rndH := RandomInRange{min: 100, max: 300}
+
+		drawTree(mt, x_num, rndY.rnd(), rndH.rnd())
+	}
+
 }
 
 
