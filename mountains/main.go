@@ -75,7 +75,7 @@ func main() {
 	mt_range.InitMountainData()
 
 	for i := 0; i < num_mt_ranges; i++ {
-		drawMountainLine(&mt_range, W, H)
+		drawMountainLine(&mt_range, W, H, i)
 
 		mt_range.iterate()
 	}
@@ -84,7 +84,7 @@ func main() {
 
 }
 
-func drawMountainLine(mt *MountainData, dc_w int, dc_h int) {
+func drawMountainLine(mt *MountainData, dc_w int, dc_h int, layer int) {
 
 	sm1 := RandomInRange{min: -1, max: 1}
 
@@ -178,9 +178,13 @@ func drawMountainLine(mt *MountainData, dc_w int, dc_h int) {
 		}
 
 		rndY := RandomInRange{min: max_y_tree(), max: float64(H)}
-		rndH := RandomInRange{min: 100, max: 300}
 
-		drawTree(mt, x_num, rndY.rnd(), rndH.rnd())
+		// Calculate height based on layer
+		// min 50, max 300
+		min_tree_height := 50.0 + (300.0/float64(num_mt_ranges) * float64(layer))
+		rndH := RandomInRange{min: min_tree_height, max: min_tree_height + 50}
+
+		drawTree(mt, x_num, rndY.rnd(), rndH.rnd(), layer)
 	}
 
 }
@@ -197,7 +201,7 @@ type BranchTree struct {
 }
 
 
-func drawTree(mt *MountainData, base_x, base_y, height float64) {
+func drawTree(mt *MountainData, base_x, base_y, height float64, layer int) {
 
 	sm1 := RandomInRange{min: 0.8, max: 1.2}
 
@@ -210,7 +214,13 @@ func drawTree(mt *MountainData, base_x, base_y, height float64) {
 	// Draw the trunk
 	mt.dc.Push()
 
-	mt.dc.SetRGBA(1, 1, 1, 1)
+	// Make the color whiter based on layer, but only to 0.5
+	a := (255.0 - (((255.0/float64(num_mt_ranges))/2) * float64(num_mt_ranges - layer))) / 255.0
+	r := (1 - a) * 255 + a * 102
+	g := (1 - a) * 255 + a * 51
+	b := (1 - a) * 255 + a * 0
+
+	mt.dc.SetRGB255(int(r), int(g), int(b))
 
 	mt.dc.LineTo(base_l, bottom)
 	mt.dc.LineTo(base_r, bottom)
@@ -242,7 +252,12 @@ func drawTree(mt *MountainData, base_x, base_y, height float64) {
 	for branch_base_y > (top + br.top_limit_y) {
 		mt.dc.Push()
 
-		mt.dc.SetRGBA(1, 1, 1, 1)
+		// Make the color whiter based on layer, but only to 0.5
+		a := (255.0 - (((255.0/float64(num_mt_ranges))/2) * float64(num_mt_ranges - layer))) / 255.0
+		r := (1 - a) * 255 + a * 0
+		g := (1 - a) * 255 + a * 153
+		b := (1 - a) * 255 + a * 76
+		mt.dc.SetRGB255(int(r), int(g), int(b))
 
 		mt.dc.LineTo(half_tree, branch_base_y)
 		mt.dc.LineTo(half_tree, branch_base_y - (br.width_f * sm1.rnd()))
